@@ -4,17 +4,20 @@ using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
 {
+    public GameManager gameManager;
     public float maxSpeed;
     public float jumpPower;
     Rigidbody2D rigid;
     SpriteRenderer spriteRenderer;
     Animator anim;
+    CircleCollider2D circleCollider;
 
     void Awake()
     {
         rigid= GetComponent<Rigidbody2D>();
         spriteRenderer= GetComponent<SpriteRenderer>();
         anim= GetComponent<Animator>();
+        circleCollider = GetComponent<CircleCollider2D>();
     }
 
     void Update() // 1초에 60회정도 돈다
@@ -41,7 +44,7 @@ public class PlayerMove : MonoBehaviour
         else { anim.SetBool("IsWalking", true); }
 
         //Direction Sprite
-        if (Input.GetButtonDown("Horizontal"))
+        if (Input.GetButton("Horizontal"))
         {
             spriteRenderer.flipX = Input.GetAxisRaw("Horizontal") == -1;
         }
@@ -83,15 +86,62 @@ public class PlayerMove : MonoBehaviour
         }
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    void OnCollisionEnter2D(Collision2D collision)
     {
         if(collision.gameObject.tag=="Enemy")
+        {
+            // Attack
+            if (rigid.velocity.y < 0 && transform.position.y > collision.transform.position.y)
+            {
+                OnAttack(collision.transform);
+            }
+            else // Damaged
+            {
+                OnDamaged(collision.transform.position);
+            }
+        }
+        if (collision.gameObject.tag == "Spike")
         {
             OnDamaged(collision.transform.position);
         }
     }
+
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+       if(collision.gameObject.tag == "Item")
+        {
+            //Point
+            bool isBronze = collision.gameObject.name.Contains("Bronze");
+            bool isSilver = collision.gameObject.name.Contains("Silver");
+            bool isGold = collision.gameObject.name.Contains("Gold");
+
+            if(isBronze)
+            {
+                gameManager.stagePoint += 50;
+            }
+            else if (isSilver)
+            {
+                gameManager.stagePoint += 100;
+            }
+            else if (isGold)
+            {
+                gameManager.stagePoint += 300;
+            }
+
+            //Deactive Item
+            collision.gameObject.SetActive(false);
+        }
+       else if (collision.gameObject.tag=="Finish")
+        {
+            // Next stage
+            gameManager.NextStage();
+        }
+    }
     void OnDamaged(Vector2 targetPos)
     {
+        // Health Down
+        gameManager.HealthDown();
+
         // Change Layer (Immortal Active)
         gameObject.layer = 9;
 
@@ -109,9 +159,31 @@ public class PlayerMove : MonoBehaviour
         
     }
 
+    void OnAttack(Transform enemy)
+    {
+        // Point
+
+        // Enemy Die
+        EnemyMove enemyMove = enemy.GetComponent<EnemyMove>();
+        enemyMove.OnDamaged();
+    }
     void OffDamaged()
     {
         gameObject.layer = 8;
         spriteRenderer.color = new Color(1, 1, 1, 1);
+    }
+    public void OnDie()
+    {
+        //Sprite Alpha
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f);
+
+        //Sprite Flip Y
+        spriteRenderer.flipY = true;
+
+        //Collider Disable
+        circleCollider.enabled = false;
+
+        //Die Effect Jump
+        rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
     }
 }

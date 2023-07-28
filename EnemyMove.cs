@@ -8,11 +8,13 @@ public class EnemyMove : MonoBehaviour
     Animator anim;
     SpriteRenderer spriteRenderer;
     public int nextMove;
+    CircleCollider2D circleCollider;
     void Awake()
     {
         rigid= GetComponent<Rigidbody2D>();
         anim= GetComponent<Animator>();
         spriteRenderer= GetComponent<SpriteRenderer>();
+        circleCollider= GetComponent<CircleCollider2D>();
         Invoke("Think", 5);
     }
 
@@ -61,4 +63,28 @@ public class EnemyMove : MonoBehaviour
         CancelInvoke();
         Invoke("Think", 2);
     }
+
+    public void OnDamaged()
+    {
+        //Sprite Alpha
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f);
+
+        //Sprite Flip Y
+        spriteRenderer.flipY = true;
+
+        //Collider Disable
+        circleCollider.enabled = false;
+
+        //Die Effect Jump
+        rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+
+        //Destroy
+        Invoke("DeActive", 5);
+    }
+
+     void OnActive()
+    {
+        gameObject.SetActive(false);   
+    }
+
 }
