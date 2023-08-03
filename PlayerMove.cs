@@ -5,12 +5,19 @@ using UnityEngine;
 public class PlayerMove : MonoBehaviour
 {
     public GameManager gameManager;
+    public AudioClip audioJump;
+    public AudioClip audioAttack;
+    public AudioClip audioDamaged;
+    public AudioClip audioItem;
+    public AudioClip audioDie;
+    public AudioClip audioFinish;
     public float maxSpeed;
     public float jumpPower;
     Rigidbody2D rigid;
     SpriteRenderer spriteRenderer;
     Animator anim;
     CircleCollider2D circleCollider;
+    AudioSource audioSource;
 
     void Awake()
     {
@@ -18,6 +25,33 @@ public class PlayerMove : MonoBehaviour
         spriteRenderer= GetComponent<SpriteRenderer>();
         anim= GetComponent<Animator>();
         circleCollider = GetComponent<CircleCollider2D>();
+        audioSource= GetComponent<AudioSource>();
+    }
+
+    void Playsound(string soundName)
+    {
+        switch (soundName)
+        {
+            case "JUMP":
+                audioSource.clip= audioJump;
+                break;
+            case "ATTACK":
+                audioSource.clip= audioAttack;
+                break;
+            case "DAMAGED":
+                audioSource.clip= audioDamaged;
+                break;
+            case "ITEM":
+                audioSource.clip= audioItem;
+                break;
+            case "DIE":
+                audioSource.clip= audioDie;
+                break;
+            case "FINISH":
+                audioSource.clip= audioFinish;
+                break;
+        }
+        audioSource.Play();
     }
 
     void Update() // 1초에 60회정도 돈다
@@ -27,6 +61,7 @@ public class PlayerMove : MonoBehaviour
         {
             rigid.AddForce(Vector2.up * jumpPower , ForceMode2D.Impulse);
             anim.SetBool("IsJumping", true);
+            Playsound("JUMP");
         }
 
         //Stop Speed
@@ -128,13 +163,19 @@ public class PlayerMove : MonoBehaviour
                 gameManager.stagePoint += 300;
             }
 
-            //Deactive Item
+            // Deactive Item
             collision.gameObject.SetActive(false);
+
+            // sound
+            Playsound("ITEM");
         }
-       else if (collision.gameObject.tag=="Finish")
+        else if (collision.gameObject.tag=="Finish")
         {
             // Next stage
             gameManager.NextStage();
+
+            // sound
+            Playsound("FINISH");
         }
     }
     void OnDamaged(Vector2 targetPos)
@@ -156,16 +197,27 @@ public class PlayerMove : MonoBehaviour
         anim.SetTrigger("doDamaged");
 
         Invoke("OffDamaged", 2);
-        
+
+        //sound
+        Playsound("DAMAGED");
+
+        //point
+        gameManager.totalPoint -= 100;
+
     }
 
     void OnAttack(Transform enemy)
     {
-        // Point
+        // Point 
+        gameManager.stagePoint += 300;
 
         // Enemy Die
         EnemyMove enemyMove = enemy.GetComponent<EnemyMove>();
         enemyMove.OnDamaged();
+
+        //sound
+        Playsound("ATTACK");
+
     }
     void OffDamaged()
     {
@@ -174,6 +226,9 @@ public class PlayerMove : MonoBehaviour
     }
     public void OnDie()
     {
+        // sound
+        Playsound("DIE");
+
         //Sprite Alpha
         spriteRenderer.color = new Color(1, 1, 1, 0.4f);
 
@@ -185,5 +240,10 @@ public class PlayerMove : MonoBehaviour
 
         //Die Effect Jump
         rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+
+    }
+    public void VelocityZero()
+    {
+        rigid.velocity = Vector2.zero;
     }
 }
